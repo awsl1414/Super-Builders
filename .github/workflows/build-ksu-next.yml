@@ -175,8 +175,8 @@ jobs:
         curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/dev_susfs/kernel/setup.sh" | bash -s dev_susfs
         [ -d "$KERNEL_ROOT/$KSU_DIR" ] || { echo "FATAL: $KSU_DIR not created by setup.sh"; exit 1; }
 
-        # Pin to last known working commit (2fae51d broke syscall_hook_manager.h include)
-        COMMIT="${SUKISU_COMMIT:-4855fa3a8445}"
+        # 2fae51d has SUSFS v2.0.0 — sed fix below handles the syscall_hook_manager.h include
+        COMMIT="${SUKISU_COMMIT:-2fae51d}"
         cd "$KERNEL_ROOT/$KSU_DIR"
         git fetch origin
         git checkout "$COMMIT"
