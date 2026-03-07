@@ -1,137 +1,18 @@
---- clean/kernel/supercalls.c	2026-03-02 18:36:28.895068295 +0100
-+++ work-5.10/kernel/supercalls.c	2026-03-05 01:25:36.391426245 +0100
-@@ -11,6 +11,7 @@
- #include <linux/task_work.h>
- #include <linux/uaccess.h>
- #include <linux/version.h>
-+#include <linux/susfs.h>
- 
- #include "supercalls.h"
- #include "arch.h"
-@@ -345,7 +346,9 @@
-     ret = ksu_set_app_profile(&cmd.profile);
-     if (!ret) {
-         ksu_persistent_allow_list();
-+#ifndef CONFIG_KSU_SUSFS
-         ksu_mark_running_process();
-+#endif
-     }
-     return ret;
- }
-@@ -492,12 +495,12 @@
- 
-     ret = strncpy_from_user(mnt, cmd.arg, sizeof(mnt));
-     if (ret < 0) {
--        pr_err("nuke ext4 copy mnt failed: %ld\\n", ret);
--        return -EFAULT; // 或者 return ret;
-+        pr_err("nuke ext4 copy mnt failed: %ld\n", ret);
-+        return -EFAULT;
-     }
- 
-     if (ret == sizeof(mnt)) {
--        pr_err("nuke ext4 mnt path too long\\n");
-+        pr_err("nuke ext4 mnt path too long\n");
-         return -ENAMETOOLONG;
-     }
- 
-@@ -955,7 +958,99 @@
-         return 0;
-     }
- 
--    // extensions
-+    if (magic2 == SUSFS_MAGIC && current_uid().val == 0) {
-+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
-+        if (cmd == CMD_SUSFS_ADD_SUS_PATH) {
-+            susfs_add_sus_path(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_ADD_SUS_PATH_LOOP) {
-+            susfs_add_sus_path_loop(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_SET_ANDROID_DATA_ROOT_PATH) {
-+            susfs_set_i_state_on_external_dir(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_SET_SDCARD_ROOT_PATH) {
-+            susfs_set_i_state_on_external_dir(arg);
-+            return 0;
-+        }
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-+        if (cmd == CMD_SUSFS_HIDE_SUS_MNTS_FOR_NON_SU_PROCS) {
-+            susfs_set_hide_sus_mnts_for_non_su_procs(arg);
-+            return 0;
-+        }
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
-+        if (cmd == CMD_SUSFS_ADD_SUS_KSTAT) {
-+            susfs_add_sus_kstat(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_UPDATE_SUS_KSTAT) {
-+            susfs_update_sus_kstat(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_ADD_SUS_KSTAT_STATICALLY) {
-+            susfs_add_sus_kstat(arg);
-+            return 0;
-+        }
-+#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
-+        if (cmd == CMD_SUSFS_ADD_SUS_KSTAT_REDIRECT) {
-+            susfs_add_sus_kstat_redirect(arg);
-+            return 0;
-+        }
-+#endif
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
-+        if (cmd == CMD_SUSFS_SET_UNAME) {
-+            susfs_set_uname(arg);
-+            return 0;
-+        }
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_ENABLE_LOG
-+        if (cmd == CMD_SUSFS_ENABLE_LOG) {
-+            susfs_enable_log(arg);
-+            return 0;
-+        }
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
-+        if (cmd == CMD_SUSFS_SET_CMDLINE_OR_BOOTCONFIG) {
-+            susfs_set_cmdline_or_bootconfig(arg);
-+            return 0;
-+        }
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
-+        if (cmd == CMD_SUSFS_ADD_OPEN_REDIRECT) {
-+            susfs_add_open_redirect(arg);
-+            return 0;
-+        }
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
-+        if (cmd == CMD_SUSFS_ADD_SUS_MAP) {
-+            susfs_add_sus_map(arg);
-+            return 0;
-+        }
-+#endif
-+        if (cmd == CMD_SUSFS_ENABLE_AVC_LOG_SPOOFING) {
-+            susfs_set_avc_log_spoofing(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_SHOW_ENABLED_FEATURES) {
-+            susfs_get_enabled_features(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_SHOW_VARIANT) {
-+            susfs_show_variant(arg);
-+            return 0;
-+        }
-+        if (cmd == CMD_SUSFS_SHOW_VERSION) {
-+            susfs_show_version(arg);
-+            return 0;
-+        }
-+        return 0;
-+    }
- 
-     return 0;
- }
+--- a/kernel/supercalls.c
++++ b/kernel/supercalls.c
+@@ -906,13 +906,9 @@
+ 	KSU_IOCTL(SET_SEPOLICY, "SET_SEPOLICY", do_set_sepolicy, only_root),
+ 	KSU_IOCTL(CHECK_SAFEMODE, "CHECK_SAFEMODE", do_check_safemode,
+ 		  always_allow),
+-	KSU_IOCTL(GET_ALLOW_LIST, "GET_ALLOW_LIST", do_get_allow_list,
++	KSU_IOCTL(NEW_GET_ALLOW_LIST, "NEW_GET_ALLOW_LIST", do_new_get_allow_list,
+ 		  manager_or_root),
+-	KSU_IOCTL(GET_DENY_LIST, "GET_DENY_LIST", do_get_deny_list,
+-		  manager_or_root),
+-	KSU_IOCTL(KSU_IOCTL_NEW_GET_ALLOW_LIST, "NEW_GET_ALLOW_LIST", do_new_get_allow_list,
+-		  manager_or_root),
+-	KSU_IOCTL(KSU_IOCTL_NEW_GET_DENY_LIST, "NEW_GET_DENY_LIST", do_new_get_deny_list,
++	KSU_IOCTL(NEW_GET_DENY_LIST, "NEW_GET_DENY_LIST", do_new_get_deny_list,
+ 		  manager_or_root),
+ 	KSU_IOCTL(UID_GRANTED_ROOT, "UID_GRANTED_ROOT", do_uid_granted_root,
+ 		  manager_or_root),
