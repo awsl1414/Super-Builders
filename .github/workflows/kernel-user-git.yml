@@ -204,7 +204,7 @@ jobs:
       if: inputs.add_susfs
       run: |
         cd "kernel_source/$KSU_DIR"
-        if grep -rq 'CONFIG_KSU_SUSFS' kernel/Kconfig 2>/dev/null; then
+        if grep -rq 'config KSU_SUSFS' kernel/Kconfig 2>/dev/null; then
           echo "SUSFS already integrated in $KSU_DIR, skipping 10_ patch"
           exit 0
         fi
