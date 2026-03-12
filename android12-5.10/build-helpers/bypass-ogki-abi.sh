@@ -11,7 +11,7 @@ BUILD_CONFIG_GKI="kernel_platform/common/build.config.gki"
 strip_protected_exports() {
   local bazel_file="$1"
   if [ ! -f "$bazel_file" ]; then
-    echo "::warning::bypass-ogki-abi: ${bazel_file} not found — skipping"
+    echo "bypass-ogki-abi: ${bazel_file} not found — skipping"
     return 0
   fi
   if grep -q 'protected_exports_list' "$bazel_file"; then
@@ -41,7 +41,7 @@ if [ -f "$BUILD_CONFIG_GKI" ]; then
     echo "bypass-ogki-abi: disabled check_defconfig in build.config.gki"
   fi
 else
-  echo "::warning::bypass-ogki-abi: build.config.gki not found — skipping check_defconfig"
+  echo "bypass-ogki-abi: build.config.gki not found — skipping check_defconfig"
 fi
 
 DEFCONFIG="kernel_platform/common/arch/arm64/configs/gki_defconfig"
@@ -51,7 +51,7 @@ if [ -f "$DEFCONFIG" ]; then
     echo "bypass-ogki-abi: disabled TRIM_UNUSED_KSYMS in gki_defconfig"
   fi
 else
-  echo "::warning::bypass-ogki-abi: gki_defconfig not found — skipping TRIM_UNUSED_KSYMS"
+  echo "bypass-ogki-abi: gki_defconfig not found — skipping TRIM_UNUSED_KSYMS"
 fi
 
 echo "bypass-ogki-abi: done"

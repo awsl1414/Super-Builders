@@ -352,7 +352,7 @@ jobs:
           export PATH="$(realpath "$CLANG_DIR")/bin:$PATH"
           echo "Using prebuilt clang: $CLANG_DIR"
         else
-          echo "::warning::No working prebuilt clang — installing system clang"
+          echo "No working prebuilt clang — installing system clang"
           sudo apt-get -qq install -y clang lld llvm >/dev/null 2>&1
         fi
 
@@ -485,23 +485,23 @@ jobs:
         ADD_SUSFS: ${{ inputs.add_susfs }}
         ADD_ZEROMOUNT: ${{ inputs.add_zeromount }}
         ADD_KPM: ${{ inputs.add_kpm }}
+        ADD_ZRAM: ${{ inputs.add_zram }}
         LTO_MODE: ${{ inputs.lto_mode }}
       run: |
         S() { [[ "$1" == "true" ]] && echo "Enabled" || echo "Disabled"; }
         {
-          echo "## BBK OGKI SukiSU | ${DEVICE_NAME}"
+          echo "## SukiSU | ${DEVICE_NAME} — ${KERNEL_VER}.${SUBLEVEL}"
           echo ""
-          echo "| Property | Value |"
-          echo "|----------|-------|"
+          echo "| Feature | Status |"
+          echo "|---------|--------|"
           echo "| **Device** | ${DEVICE_NAME} (${DEVICE_KEY}) |"
-          echo "| **Brand** | ${BRAND} |"
           echo "| **SoC** | ${SOC} (${CODENAME}) |"
           echo "| **Kernel** | ${KERNEL_VER}.${SUBLEVEL} |"
           echo "| **Android** | ${ANDROID_VER} |"
-          echo "| **Build Method** | ${BUILD_METHOD} |"
           echo "| **LTO** | ${LTO_MODE} |"
           echo "| **Enhanced SUSFS** | $(S "$ADD_SUSFS") |"
           echo "| **ZeroMount** | $(S "$ADD_ZEROMOUNT") |"
+          echo "| **ZRAM (LZ4K/LZ4KD)** | $(S "$ADD_ZRAM") |"
           echo "| **KPM** | $(S "$ADD_KPM") |"
           echo "| **HMBird** | $(S "$HMBIRD") |"
           echo "| **Rejects** | ${REJ_COUNT:-0} |"
