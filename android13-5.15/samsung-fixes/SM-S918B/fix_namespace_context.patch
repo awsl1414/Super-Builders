@@ -1,6 +1,6 @@
 --- a/fs/namespace.c
 +++ b/fs/namespace.c
-@@ -30,14 +30,14 @@
+@@ -30,13 +30,13 @@
  #include <linux/task_work.h>
  #include <linux/sched/task.h>
 +#include <linux/fslog.h>
@@ -18,3 +18,15 @@
 
  #include "pnode.h"
  #include "internal.h"
+@@ -3874,9 +3874,9 @@
+ 	if (user_ns != ns->user_ns)
+ 		copy_flags |= CL_SHARED_TO_SLAVE;
+-#ifdef CONFIG_KDP_NS
+-	new = copy_tree(old, ((struct kdp_mount *)old)->mnt->mnt_root, copy_flags);
+-#else
++#ifndef CONFIG_KDP_NS
+ 	new = copy_tree(old, old->mnt.mnt_root, copy_flags);
++#else
++	new = copy_tree(old, ((struct kdp_mount *)old)->mnt->mnt_root, copy_flags);
+ #endif
+ 	if (IS_ERR(new)) {

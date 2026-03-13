@@ -186,8 +186,14 @@ jobs:
       run: |
         CLANG_DIR=$(find "$SYNC_DIR" -path '*/prebuilts/clang/host/linux-x86/clang-*' -maxdepth 6 -type d 2>/dev/null | sort -V | tail -1)
         if [ -n "$CLANG_DIR" ] && [ -x "$(realpath "$CLANG_DIR")/bin/clang" ]; then
-          CLANG_BIN="$(realpath "$CLANG_DIR")/bin"
-          echo "Using prebuilt clang: $CLANG_DIR"
+          REAL_PATH="$(realpath "$CLANG_DIR")/bin"
+          if [ -x "$REAL_PATH/clang.real" ]; then
+            CLANG_BIN="$REAL_PATH"
+            echo "Using prebuilt clang: $CLANG_DIR"
+          else
+            CLANG_BIN="/usr/bin"
+            echo "::notice::Prebuilt clang wrapper without clang.real — using system clang"
+          fi
         else
           CLANG_BIN="/usr/bin"
           echo "No prebuilt clang — using system clang"
@@ -346,16 +352,8 @@ jobs:
       run: |
         bash "$OEM_HELPERS/samsung-wifi-fix.sh" "$KERNEL_COMMON"
 
-    - name: Detect Samsung Compiler Wrapper
-      if: env.DRY_TEST_STATUS == 'PASSED'
-      run: |
-        if find "$SYNC_DIR" -name 'compiler_wrapper.go' -maxdepth 8 2>/dev/null | grep -q .; then
-          echo "::notice::Samsung Go compiler wrapper detected — skipping targeted compilation"
-          echo "SKIP_COMPILE=true" >> "$GITHUB_ENV"
-        fi
-
     - name: Targeted Compilation
-      if: env.DRY_TEST_STATUS == 'PASSED' && env.SKIP_COMPILE != 'true'
+      if: env.DRY_TEST_STATUS == 'PASSED'
       working-directory: ${{ env.KERNEL_COMMON }}
       run: |
         export PATH="${CLANG_BIN}:$PATH"
