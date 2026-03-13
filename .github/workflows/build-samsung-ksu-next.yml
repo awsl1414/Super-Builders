@@ -137,6 +137,7 @@ jobs:
         FIX_PATCHES_DIR=$(echo "$DEVICE_JSON" | jq -r '.fix_patches_dir // empty')
         WIFI_FIX=$(echo "$DEVICE_JSON" | jq -r '.wifi_fix // false')
         EXTRA_ARTIFACTS=$(echo "$DEVICE_JSON" | jq -r '.extra_artifacts // [] | join(",")')
+        DEFCONFIG_NAME=$(echo "$DEVICE_JSON" | jq -r '.defconfig // "gki_defconfig"')
 
         VERSION_DIR="${ANDROID_VER}-${KERNEL_VER}"
         if [ ! -d "$GITHUB_WORKSPACE/$VERSION_DIR" ]; then
@@ -191,7 +192,8 @@ jobs:
 
         echo "SYNC_DIR=$SYNC_DIR" >> "$GITHUB_ENV"
         echo "KERNEL_COMMON=$SYNC_DIR/$COMMON_PATH" >> "$GITHUB_ENV"
-        echo "DEFCONFIG=$SYNC_DIR/$COMMON_PATH/arch/arm64/configs/gki_defconfig" >> "$GITHUB_ENV"
+        echo "DEFCONFIG=$SYNC_DIR/$COMMON_PATH/arch/arm64/configs/${DEFCONFIG_NAME}" >> "$GITHUB_ENV"
+        echo "DEFCONFIG_NAME=$DEFCONFIG_NAME" >> "$GITHUB_ENV"
 
         echo "Source cloned: $SOURCE_REPO @ $SOURCE_BRANCH"
         echo "Common kernel: $SYNC_DIR/$COMMON_PATH"
