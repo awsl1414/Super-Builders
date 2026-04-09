@@ -354,10 +354,20 @@ jobs:
         export ROOT_DIR="$KERNEL_ROOT"
         export KERNEL_DIR=common
 
-        CLANG_BIN=$(grep '^CLANG_PREBUILT_BIN=' build.config.common | cut -d= -f2)
-        TOOLS_BIN=$(grep '^BUILDTOOLS_PREBUILT_BIN=' build.config.common | cut -d= -f2)
-        GAS_BIN=$(grep '^LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=' build.config.aarch64 | cut -d= -f2)
+        # build.config.common references ${CLANG_VERSION} from build.config.constants,
+        # so source constants first to make the variable available for expansion.
+        # shellcheck disable=SC1091
+        source ./build.config.constants
+
+        eval CLANG_BIN="$(grep '^CLANG_PREBUILT_BIN=' build.config.common | cut -d= -f2)"
+        eval TOOLS_BIN="$(grep '^BUILDTOOLS_PREBUILT_BIN=' build.config.common | cut -d= -f2)"
+        eval GAS_BIN="$(grep '^LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=' build.config.aarch64 | cut -d= -f2)"
         export PATH="$ROOT_DIR/$CLANG_BIN:$ROOT_DIR/$TOOLS_BIN:$ROOT_DIR/$GAS_BIN:$PATH"
+
+        if [ ! -x "$ROOT_DIR/$CLANG_BIN/clang" ]; then
+          echo "::error::CLANG_BIN not found at $ROOT_DIR/$CLANG_BIN (CLANG_VERSION=$CLANG_VERSION)"
+          exit 1
+        fi
 
         if ! command -v ld.lld &>/dev/null; then
           sudo apt-get install -y -qq lld >/dev/null 2>&1
