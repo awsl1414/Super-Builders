@@ -167,8 +167,8 @@ fi
 # The 50_ patch places '#ifdef SUS_MAP / struct vm_area_struct *vma; /
 # #endif' inside a nested block on older sublevels due to patch fuzz.
 # Remove the misplaced 3-line block and insert the declaration at
-# function scope after 'pagemap_entry_t *res = NULL;' (unique to
-# pagemap_read, won't collide with vma decls in other functions).
+# function scope after 'struct pagemapread pm;' (stable anchor present
+# in all sublevels of pagemap_read).
 # ---------------------------------------------------------------------------
 if [ -f "$TMU" ]; then
     if grep -B1 'struct vm_area_struct \*vma;' "$TMU" | grep -q 'CONFIG_KSU_SUSFS_SUS_MAP'; then
@@ -180,6 +180,7 @@ with open(path) as f:
     lines = f.readlines()
 
 # Step 1: Remove the #ifdef-wrapped vma declaration (unique to pagemap_read)
+removed = False
 i = 0
 while i < len(lines):
     if 'CONFIG_KSU_SUSFS_SUS_MAP' in lines[i] \
@@ -187,18 +188,26 @@ while i < len(lines):
        and i+2 < len(lines) and '#endif' in lines[i+2]:
         del lines[i:i+3]
         print(f"  removed #ifdef-wrapped vma block at line {i+1}")
+        removed = True
         break
     i += 1
-else:
+
+if not removed:
     print("  no #ifdef-wrapped vma found, skipping")
     sys.exit(0)
 
-# Step 2: Insert unconditional vma decl after 'pagemap_entry_t *res = NULL;'
+# Step 2: Insert vma decl after 'struct pagemapread pm;' in pagemap_read
+inserted = False
 for i, line in enumerate(lines):
-    if 'pagemap_entry_t' in line and 'res' in line and 'NULL' in line:
+    if 'struct pagemapread pm;' in line:
         lines.insert(i+1, '\tstruct vm_area_struct *vma;\n')
-        print(f"  inserted vma decl at function scope (line {i+2})")
+        print(f"  inserted vma decl after pagemapread pm (line {i+2})")
+        inserted = True
         break
+
+if not inserted:
+    print("  ERROR: pagemapread pm anchor not found")
+    sys.exit(1)
 
 with open(path, 'w') as f:
     f.writelines(lines)
