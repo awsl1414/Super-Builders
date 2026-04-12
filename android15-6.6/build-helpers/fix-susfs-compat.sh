@@ -164,13 +164,14 @@ fi
 
 # ---------------------------------------------------------------------------
 # Fix 7: task_mmu.c — pagemap_read vma scoping on older sublevels
-# The 50_ patch places 'struct vm_area_struct *vma;' inside a nested
-# block on older sublevels due to patch fuzz. Relocate the declaration
-# to function scope (after pagemap_entry_t *res) so it's visible at
-# the usage site.
+# The 50_ patch places '#ifdef SUS_MAP / struct vm_area_struct *vma; /
+# #endif' inside a nested block on older sublevels due to patch fuzz.
+# Remove the misplaced 3-line block and insert the declaration at
+# function scope after 'pagemap_entry_t *res = NULL;' (unique to
+# pagemap_read, won't collide with vma decls in other functions).
 # ---------------------------------------------------------------------------
 if [ -f "$TMU" ]; then
-    if grep -q 'struct vm_area_struct \*vma;' "$TMU"; then
+    if grep -B1 'struct vm_area_struct \*vma;' "$TMU" | grep -q 'CONFIG_KSU_SUSFS_SUS_MAP'; then
         echo "fix-susfs-compat: relocating pagemap_read vma to function scope in task_mmu.c"
         python3 - "$TMU" << 'PYEOF'
 import sys
@@ -178,30 +179,23 @@ path = sys.argv[1]
 with open(path) as f:
     lines = f.readlines()
 
-# Remove the misplaced vma declaration (with optional #ifdef/#endif wrapper)
-removed = False
+# Step 1: Remove the #ifdef-wrapped vma declaration (unique to pagemap_read)
 i = 0
 while i < len(lines):
-    if 'struct vm_area_struct *vma;' in lines[i]:
-        # Check if wrapped in #ifdef/#endif
-        if i > 0 and 'CONFIG_KSU_SUSFS_SUS_MAP' in lines[i-1] \
-           and i+1 < len(lines) and '#endif' in lines[i+1]:
-            del lines[i-1:i+2]
-            print(f"  removed #ifdef-wrapped vma decl at line {i}")
-        else:
-            del lines[i]
-            print(f"  removed bare vma decl at line {i+1}")
-        removed = True
+    if 'CONFIG_KSU_SUSFS_SUS_MAP' in lines[i] \
+       and i+1 < len(lines) and 'struct vm_area_struct *vma;' in lines[i+1] \
+       and i+2 < len(lines) and '#endif' in lines[i+2]:
+        del lines[i:i+3]
+        print(f"  removed #ifdef-wrapped vma block at line {i+1}")
         break
     i += 1
-
-if not removed:
-    print("  vma decl not found, skipping")
+else:
+    print("  no #ifdef-wrapped vma found, skipping")
     sys.exit(0)
 
-# Insert at function scope: after 'pagemap_entry_t *res = NULL;'
+# Step 2: Insert unconditional vma decl after 'pagemap_entry_t *res = NULL;'
 for i, line in enumerate(lines):
-    if 'pagemap_entry_t' in line and 'res' in line:
+    if 'pagemap_entry_t' in line and 'res' in line and 'NULL' in line:
         lines.insert(i+1, '\tstruct vm_area_struct *vma;\n')
         print(f"  inserted vma decl at function scope (line {i+2})")
         break
